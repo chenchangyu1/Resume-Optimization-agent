@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resume Forge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="aurora"></div>
+    <main class="page">
+      <section class="hero card">
+        <p class="tag">LangChain + GLM Agent</p>
+        <h1>Resume Forge</h1>
+        <p class="subtitle">上传你的 Word 简历与岗位需求，自动生成更匹配且保持原样式的投递版本。</p>
+      </section>
+
+      <section class="card form-card">
+        {% if error %}
+        <div class="alert error">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+        <div class="alert success">{{ success }}</div>
+        {% endif %}
+        {% if converted_from_doc %}
+        <div class="alert success">检测到 .doc 输入，已自动转换为 .docx 后完成优化。</div>
+        {% endif %}
+        {% if verification and verification.get('passed') == false %}
+        <div class="alert error">本次输出通过了基础生成，但质检提示仍有待加强的岗位匹配项。</div>
+        {% endif %}
+
+        <form id="optimize-form" action="{{ url_for('optimize') }}" method="post" enctype="multipart/form-data">
+          <label>简历 Word（.docx / .doc）</label>
+          <input type="file" name="resume" accept=".docx,.doc" required />
+
+          <label>岗位文件（txt/md/图片）</label>
+          <input type="file" name="job_file" accept=".txt,.md,.png,.jpg,.jpeg,.webp,.bmp" />
+
+          <div class="split-line"><span>或</span></div>
+
+          <label>岗位文字（直接粘贴）</label>
+          <textarea
+            name="job_text"
+            rows="6"
+            placeholder="例如：负责大模型应用开发，3年以上Python经验，熟悉LangChain与RAG..."
+          ></textarea>
+
+          <button id="submit-btn" type="submit">开始优化</button>
+          <div id="loading-box" class="loading-box" aria-live="polite">
+            <span class="spinner"></span>
+            <span>简历优化中，请稍候...</span>
+          </div>
+        </form>
+      </section>
+
+      {% if download_docx_name %}
+      <section class="card result-card">
+        <div class="result-header">
+          <h2>优化后简历 Word</h2>
+          {% if download_docx_name %}
+          <a class="download" href="{{ url_for('download', filename=download_docx_name) }}">下载 DOCX</a>
+          {% endif %}
+        </div>
+        <p class="subtitle">已生成并保留原有模板样式，点击上方按钮下载。</p>
+        {% if parse_report %}
+        <p class="subtitle">
+          本次解析提取了 {{ parse_report.get('text_unit_count', 0) }} 个文本单元，
+          工作流模式为 {{ parse_report.get('workflow_mode', 'unknown') }}，
+          缓存状态为 {% if parse_report.get('cache_enabled') %}已启用{% else %}未启用{% endif %}。
+        </p>
+        {% if parse_report.get('supplemental_sources') %}
+        <p class="subtitle">
+          补充解析来源：
+          {% for source in parse_report.get('supplemental_sources', []) %}
+            {{ source.get('name') }}({{ source.get('count') }}){% if not loop.last %}、{% endif %}
+          {% endfor %}
+        </p>
+        {% endif %}
+        {% endif %}
+      </section>
+      {% endif %}
+    </main>
+    <script>
+      (function () {
+        const form = document.getElementById("optimize-form");
+        const btn = document.getElementById("submit-btn");
+        const box = document.getElementById("loading-box");
+        if (!form || !btn || !box) return;
+
+        form.addEventListener("submit", function () {
+          btn.disabled = true;
+          btn.textContent = "优化中...";
+          box.classList.add("active");
+        });
+      })();
+    </script>
+  </body>
+</html>

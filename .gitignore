@@ -1,0 +1,24 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Local cache
+.cache/
+
+# Runtime uploads and generated outputs
+uploads/
+output/
+
+# IDE and OS files
+.vscode/
+.DS_Store
+Thumbs.db
