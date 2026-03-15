@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -62,6 +63,24 @@ def _build_llm(model_name: str, temperature: float = 0.2) -> ChatOpenAI:
 
 def _normalize_text(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.replace("\r\n", "\n").split("\n")).strip()
+
+
+def _leading_indent(text: str) -> str:
+    """Capture manual leading indentation characters used in templates."""
+    match = re.match(r"^[\t \u3000]+", text or "")
+    return match.group(0) if match else ""
+
+
+def _preserve_leading_indent(original_text: str, rewritten_text: str) -> str:
+    original_indent = _leading_indent(original_text)
+    if not original_indent:
+        return rewritten_text
+
+    rewritten_indent = _leading_indent(rewritten_text)
+    if rewritten_indent:
+        return rewritten_text
+
+    return f"{original_indent}{rewritten_text}"
 
 
 def _serialize_for_cache(payload: Any) -> str:
@@ -674,7 +693,9 @@ def save_optimized_resume_docx(
         uid = f"t{seq}"
         if uid not in unit_map:
             continue
-        _rewrite_paragraph_preserve_runs(paragraph, unit_map[uid]["optimized_text"])
+        optimized_text = unit_map[uid]["optimized_text"]
+        optimized_text = _preserve_leading_indent(paragraph.text, optimized_text)
+        _rewrite_paragraph_preserve_runs(paragraph, optimized_text)
 
     out_path = Path(output_docx_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
